@@ -1,0 +1,17 @@
+{
+  "name": "mourya-dry-cleaners",
+  "version": "1.0.0",
+  "description": "Mourya Dry Cleaners local website",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "echo 'Static site ready for deployment'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "jpeg-js": "^0.4.4"
+  }
+}

@@ -1,0 +1,65 @@
+# netlify.toml - Netlify configuration for mouryadrycleaners.in
+
+[build]
+  publish = "."
+
+# -------------------------------------------------------
+# Admin URL Rewrites (Fixes 404 on /admin)
+# -------------------------------------------------------
+[[redirects]]
+  from = "/admin"
+  to = "/admin-dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/"
+  to = "/admin-dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin-dashboard"
+  to = "/admin-dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/admin-dashboard.css"
+  to = "/admin-dashboard.css"
+  status = 200
+
+[[redirects]]
+  from = "/admin/admin-dashboard.js"
+  to = "/admin-dashboard.js"
+  status = 200
+
+# -------------------------------------------------------
+# Security & SEO HTTP Headers
+# -------------------------------------------------------
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/style.css"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, must-revalidate"
+
+[[headers]]
+  for = "/script.js"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, must-revalidate"
+
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Content-Type = "application/xml; charset=UTF-8"
+    Cache-Control = "public, max-age=86400"

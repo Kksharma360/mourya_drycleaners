@@ -1,0 +1,56 @@
+[
+  {
+    "billNumber": "MDC-2610-008",
+    "invoiceNumber": "MDC-2610-008",
+    "date": "2026-10-29",
+    "customerName": "Mehra",
+    "phone": "8800437774",
+    "address": "Flat 402, DLF Phase 2, Gurugram",
+    "items": [
+      {
+        "qty": 2,
+        "name": "Blanket (Double)",
+        "rate": 320,
+        "total": 640,
+        "service": "Dry Clean"
+      },
+      {
+        "qty": 3,
+        "name": "Sofa Seat (Per Seat)",
+        "rate": 230,
+        "total": 690,
+        "service": "Sofa Cleaning"
+      }
+    ],
+    "totalAmount": 1280,
+    "grandTotal": 1280,
+    "createdAt": "2026-10-29T08:08:27.919+00:00"
+  },
+  {
+    "billNumber": "MDC-2610-689",
+    "invoiceNumber": "MDC-2610-689",
+    "date": "2026-10-29",
+    "customerName": "krishan",
+    "phone": "9868186756",
+    "address": "",
+    "items": [
+      {
+        "qty": 4,
+        "name": "Wash & Fold (1 Kg)",
+        "rate": 55,
+        "total": 220,
+        "service": "Laundry"
+      },
+      {
+        "qty": 1,
+        "name": "Sneakers / Leather Shoes",
+        "rate": 250,
+        "total": 250,
+        "service": "Shoe Care"
+      }
+    ],
+    "totalAmount": 470,
+    "grandTotal": 470,
+    "createdAt": "2026-10-29T06:32:27.039+00:00"
+  }
+]

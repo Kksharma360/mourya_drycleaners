@@ -1,0 +1,58 @@
+{
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "redirects": [
+    { "source": "/index", "destination": "/index.html", "statusCode": 301 },
+    { "source": "/about", "destination": "/about.html", "statusCode": 301 },
+    { "source": "/contact", "destination": "/contact.html", "statusCode": 301 },
+    { "source": "/pricing", "destination": "/pricing.html", "statusCode": 301 },
+    { "source": "/faq", "destination": "/faq.html", "statusCode": 301 },
+    { "source": "/areas-served", "destination": "/areas-served.html", "statusCode": 301 },
+    { "source": "/dry-cleaning-gurugram", "destination": "/dry-cleaning-gurugram.html", "statusCode": 301 },
+    { "source": "/laundry-service-gurugram", "destination": "/laundry-service-gurugram.html", "statusCode": 301 },
+    { "source": "/sofa-cleaning-gurugram", "destination": "/sofa-cleaning-gurugram.html", "statusCode": 301 },
+    { "source": "/blanket-cleaning-gurugram", "destination": "/blanket-cleaning-gurugram.html", "statusCode": 301 },
+    { "source": "/curtain-cleaning-gurugram", "destination": "/curtain-cleaning-gurugram.html", "statusCode": 301 },
+    { "source": "/shoe-cleaning-gurugram", "destination": "/shoe-cleaning-gurugram.html", "statusCode": 301 },
+    { "source": "/wedding-dress-cleaning-gurugram", "destination": "/wedding-dress-cleaning-gurugram.html", "statusCode": 301 },
+    { "source": "/carpet-cleaning-gurugram", "destination": "/carpet-cleaning-gurugram.html", "statusCode": 301 },
+    { "source": "/suit-dry-cleaning-gurugram", "destination": "/suit-dry-cleaning-gurugram.html", "statusCode": 301 },
+    { "source": "/steam-ironing-gurugram", "destination": "/steam-ironing-gurugram.html", "statusCode": 301 },
+    { "source": "/leather-bag-cleaning-gurugram", "destination": "/leather-bag-cleaning-gurugram.html", "statusCode": 301 },
+    { "source": "/commercial-laundry-gurugram", "destination": "/commercial-laundry-gurugram.html", "statusCode": 301 },
+    { "source": "/dry-cleaner-dlf-gurugram", "destination": "/dry-cleaner-dlf-gurugram.html", "statusCode": 301 },
+    { "source": "/dry-cleaner-golf-course-road", "destination": "/dry-cleaner-golf-course-road.html", "statusCode": 301 },
+    { "source": "/dry-cleaner-sohna-road", "destination": "/dry-cleaner-sohna-road.html", "statusCode": 301 },
+    { "source": "/dry-cleaner-palam-vihar", "destination": "/dry-cleaner-palam-vihar.html", "statusCode": 301 },
+    { "source": "/dry-cleaner-dwarka-expressway", "destination": "/dry-cleaner-dwarka-expressway.html", "statusCode": 301 },
+    { "source": "/rate-card-poster", "destination": "/rate-card-poster.html", "statusCode": 301 }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ]
+}

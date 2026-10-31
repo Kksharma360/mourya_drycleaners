@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Mourya Dry Cleaners — Staff & Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin-dashboard.css" />
+  <script src="/assets/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+  <!-- ==================== 1. LOGIN MODAL ==================== -->
+  <div id="loginScreen" class="login-wrapper">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="brand-badge-icon">🧺</div>
+        <h2>Mourya Dry Cleaners</h2>
+        <p class="login-sub">Staff Management &amp; Billing Portal</p>
+      </div>
+
+      <form id="loginForm" autocomplete="off">
+        <div class="form-group">
+          <label for="adminUsername">Admin Email ID</label>
+          <input type="email" id="adminUsername" placeholder="mouryadrycleaners24@gmail.com" required autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label for="adminPassword">Admin Password</label>
+          <input type="password" id="adminPassword" placeholder="••••••••" required autocomplete="current-password" />
+        </div>
+        <div id="loginError" class="auth-error hidden">Galat ID ya Password. Access Denied.</div>
+        <button type="submit" class="btn-primary btn-block">
+          <span>Sign In to Dashboard</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <span>© 2026 Mourya Dry Cleaners Gurugram</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 2. MAIN DASHBOARD ==================== -->
+  <div id="dashboardApp" class="app-layout hidden" style="display:none !important;">
+    
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-box">
+          <span class="logo-icon">🧺</span>
+          <div class="logo-text">
+            <span class="logo-title">Mourya</span>
+            <span class="logo-sub">ADMIN PORTAL</span>
+          </div>
+        </div>
+        <button class="btn-close-sidebar" id="btnCloseSidebar" aria-label="Close Sidebar">✕</button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">MAIN NAVIGATION</div>
+        
+        <button type="button" class="nav-item active" data-tab="bookingsTab" id="navBookings">
+          <span class="nav-icon">📦</span>
+          <span class="nav-label">Bookings</span>
+          <span class="nav-badge" id="badgeTotalBookings">0</span>
+        </button>
+
+        <button type="button" class="nav-item" data-tab="billsTab" id="navBills">
+          <span class="nav-icon">🧾</span>
+          <span class="nav-label">Bills</span>
+          <span class="nav-badge badge-neutral" id="badgeTotalBills">0</span>
+        </button>
+
+        <button type="button" class="nav-item" data-tab="expensesTab" id="navExpenses">
+          <span class="nav-icon">💰</span>
+          <span class="nav-label">Expenses</span>
+          <span class="nav-badge badge-neutral" id="badgeTotalExpenses">0</span>
+        </button>
+
+        <div class="nav-section-title">QUICK LINKS</div>
+        <a href="/" target="_blank" class="nav-item nav-link-external">
+          <span class="nav-icon">🌐</span>
+          <span class="nav-label">Live Website</span>
+          <span class="nav-icon-ext">↗</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar">AD</div>
+          <div class="user-meta">
+            <span class="user-name">Staff Admin</span>
+            <span class="user-role">
+              <span class="status-dot-green"></span> Database Live
+            </span>
+          </div>
+        </div>
+        <button type="button" class="btn-logout" id="btnLogout" title="Sign out">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <span>Logout</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="main-content">
+      
+      <!-- TOP HEADER BAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button type="button" class="btn-menu-toggle" id="btnToggleSidebar" aria-label="Toggle Menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <div>
+            <h1 class="page-title" id="pageTitle">Customer Bookings</h1>
+            <p class="page-subtitle" id="pageSubtitle">Manage door-to-door pickups, deliveries, and payment verifications</p>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <button type="button" class="btn-secondary" id="btnGlobalRefresh" title="Sync data">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            <span>Refresh</span>
+          </button>
+          
+          <button type="button" class="btn-primary" id="btnTopPrimaryAction">
+            <span>➕ Add Booking</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEW 1: BOOKINGS TAB -->
+      <section id="bookingsTab" class="view-panel active">
+        
+        <!-- Summary KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon icon-blue">📦</div>
+            <div>
+              <div class="kpi-label">Total Bookings</div>
+              <div class="kpi-value" id="kpiTotalBookings">0</div>
+            </div>
+          </div>
+          <div class="kpi-card" id="kpiCardPickup" style="cursor: pointer;" title="Click to filter">
+            <div class="kpi-icon icon-amber">⏳</div>
+            <div>
+              <div class="kpi-label">Pickup Pending</div>
+              <div class="kpi-value" id="kpiPendingPickup">0</div>
+            </div>
+          </div>
+          <div class="kpi-card" id="kpiCardPayment" style="cursor: pointer;" title="Click to filter">
+            <div class="kpi-icon icon-rose">💳</div>
+            <div>
+              <div class="kpi-label">Payment Pending</div>
+              <div class="kpi-value" id="kpiPendingPayment">0</div>
+            </div>
+          </div>
+          <div class="kpi-card" id="kpiCardDelivery" style="cursor: pointer;" title="Click to filter">
+            <div class="kpi-icon icon-purple">🚚</div>
+            <div>
+              <div class="kpi-label">Delivery Pending</div>
+              <div class="kpi-value" id="kpiPendingDelivery">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="toolbar-card">
+          <div class="toolbar-row">
+            <!-- Search -->
+            <div class="search-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="bookingSearchInput" placeholder="Search by name, phone, sector, address..." />
+              <button type="button" id="btnClearSearch" class="btn-clear-input hidden">✕</button>
+            </div>
+
+            <!-- Date Ordering -->
+            <div class="filter-group">
+              <label for="bookingSortSelect" class="filter-label">Order by:</label>
+              <select id="bookingSortSelect" class="select-input">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="pickup_asc">Pickup Date (Soonest)</option>
+                <option value="pickup_desc">Pickup Date (Latest)</option>
+              </select>
+            </div>
+
+            <!-- Specific Date Filter -->
+            <div class="filter-group">
+              <label for="bookingDateFilter" class="filter-label">Specific Date:</label>
+              <input type="date" id="bookingDateFilter" class="date-input" />
+              <button type="button" id="btnClearDateFilter" class="btn-clear-date hidden" title="Clear Date">✕</button>
+            </div>
+          </div>
+
+          <!-- Quick Status Filter Pills -->
+          <div class="filter-pills-row">
+            <span class="pills-title">Status Filter:</span>
+            <div class="pills-container">
+              <button type="button" class="filter-pill active" data-filter="all">All Bookings (<span id="pillCountAll">0</span>)</button>
+              <button type="button" class="filter-pill pill-warning" data-filter="pickup_not_done">⏳ Pickup Not Done (<span id="pillCountPickup">0</span>)</button>
+              <button type="button" class="filter-pill pill-danger" data-filter="payment_not_done">💳 Payment Not Done (<span id="pillCountPayment">0</span>)</button>
+              <button type="button" class="filter-pill pill-purple" data-filter="delivery_not_done">🚚 Delivery Not Done (<span id="pillCountDelivery">0</span>)</button>
+              <button type="button" class="filter-pill pill-success" data-filter="completed">✅ All Completed (<span id="pillCountDone">0</span>)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bookings List / Cards Grid -->
+        <div class="content-section">
+          <div class="section-meta-header">
+            <span id="bookingResultsCount">Loading bookings...</span>
+          </div>
+
+          <div id="bookingsList" class="bookings-grid">
+            <!-- Dynamic Booking Cards Rendered by JS -->
+          </div>
+
+          <div id="noBookingsState" class="empty-state hidden">
+            <div class="empty-icon">🔍</div>
+            <h3>No bookings match your filter</h3>
+            <p>Try resetting the search or status filters to view all bookings.</p>
+            <button type="button" class="btn-secondary" id="btnResetFilters">Reset All Filters</button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- VIEW: BILLS TAB (NEW) -->
+      <section id="billsTab" class="view-panel hidden">
+        
+        <!-- MONTHLY BILL REVENUE & ANALYTICS BAR (WITH MONTH FILTER) -->
+        <div class="bills-revenue-analytics-card">
+          <div class="revenue-analytics-header">
+            <div class="revenue-title-area">
+              <span class="analytics-badge">📈 Revenue Analytics</span>
+              <h3>Monthly Billing Revenue</h3>
+              <p class="revenue-subtitle">Track total billing revenue and performance with monthly filtering</p>
+            </div>
+            <div class="revenue-filter-area">
+              <label for="billRevenueMonthFilter">📅 Filter by Month:</label>
+              <select id="billRevenueMonthFilter" class="revenue-month-select">
+                <option value="all">All Months (Overall)</option>
+                <!-- Populated dynamically by JS -->
+              </select>
+            </div>
+          </div>
+
+          <div class="revenue-kpi-grid">
+            <div class="rev-kpi-box rev-kpi-blue">
+              <div class="rev-kpi-icon">💰</div>
+              <div class="rev-kpi-info">
+                <div class="rev-kpi-label" id="lblSelectedMonthRevenue">Total Revenue (All Time)</div>
+                <div class="rev-kpi-value" id="valMonthlyRevenueSum">₹0</div>
+              </div>
+            </div>
+
+            <div class="rev-kpi-box rev-kpi-indigo">
+              <div class="rev-kpi-icon">🧾</div>
+              <div class="rev-kpi-info">
+                <div class="rev-kpi-label">Bills Generated</div>
+                <div class="rev-kpi-value" id="valMonthlyBillsCount">0 Bills</div>
+              </div>
+            </div>
+
+            <div class="rev-kpi-box rev-kpi-teal">
+              <div class="rev-kpi-icon">📊</div>
+              <div class="rev-kpi-info">
+                <div class="rev-kpi-label">Average Bill Value</div>
+                <div class="rev-kpi-value" id="valMonthlyAvgBill">₹0</div>
+              </div>
+            </div>
+
+            <div class="rev-kpi-box rev-kpi-amber">
+              <div class="rev-kpi-icon">🗓️</div>
+              <div class="rev-kpi-info">
+                <div class="rev-kpi-label">Selected Period</div>
+                <div class="rev-kpi-value period-badge" id="valSelectedMonthText">All Months</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bills Sub-Navigation Toolbar -->
+        <div class="bills-subnav-bar">
+          <div class="subnav-tabs">
+            <button type="button" class="subnav-tab-btn active" id="subTabBtnCreateBill">
+              <span>➕ Create New Bill</span>
+            </button>
+            <button type="button" class="subnav-tab-btn" id="subTabBtnHistory">
+              <span>📋 Bill History (<span id="billsHistoryCount">0</span>)</span>
+            </button>
+          </div>
+          <div class="bills-header-stats">
+            <span class="stat-pill">Total Bills: <strong id="kpiTotalBillsCount">0</strong></span>
+            <span class="stat-pill stat-pill-blue">Total Billed: <strong id="kpiTotalBilledSum">₹0</strong></span>
+          </div>
+        </div>
+
+        <!-- SUB-VIEW 1: CREATE NEW BILL (FORM + LIVE A4 PREVIEW) -->
+        <div id="subViewCreateBill" class="sub-view-section">
+          <div class="billing-split-layout">
+            
+            <!-- LEFT: BILLING FORM & ITEMS EDITOR -->
+            <div class="billing-form-card">
+              <div class="billing-card-header">
+                <h3>Customer &amp; Bill Information</h3>
+                <span class="auto-calc-badge">⚡ Auto Calculates Line Items &amp; Total</span>
+              </div>
+
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="billCustName">Customer Name *</label>
+                  <input type="text" id="billCustName" placeholder="e.g. Rahul Sharma" required />
+                </div>
+                <div class="form-group">
+                  <label for="billCustPhone">Mobile Number *</label>
+                  <input type="tel" id="billCustPhone" placeholder="e.g. 9876543210" required />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="billCustAddress">Full Address</label>
+                <input type="text" id="billCustAddress" placeholder="e.g. Flat 101, Tower A, Green Valley, Sector 56, Gurugram" />
+              </div>
+
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="billNumberInput">Bill Number *</label>
+                  <input type="text" id="billNumberInput" placeholder="MDC-2610-001" required />
+                </div>
+                <div class="form-group">
+                  <label for="billDateInput">Bill Date *</label>
+                  <input type="date" id="billDateInput" required />
+                </div>
+              </div>
+
+              <!-- ITEMS TABLE EDITOR -->
+              <div class="items-editor-wrapper">
+                <div class="items-editor-header">
+                  <h4>Itemized Services (8 Editable Rows)</h4>
+                  <button type="button" class="btn-add-row" id="btnAddItemRow">➕ Add Row</button>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="items-editor-table" id="itemsEditorTable">
+                    <thead>
+                      <tr>
+                        <th style="width: 44px;">#</th>
+                        <th>Item / Service</th>
+                        <th style="width: 80px;">Qty</th>
+                        <th style="width: 110px;">Rate (₹)</th>
+                        <th style="width: 120px;">Amount (₹)</th>
+                        <th style="width: 44px;"></th>
+                      </tr>
+                    </thead>
+                    <tbody id="itemsEditorTbody">
+                      <!-- 8 default rows dynamically populated by JS -->
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- TOTAL ROW -->
+                <div class="editor-total-row">
+                  <span class="total-label">Total Amount:</span>
+                  <span class="total-value" id="editorTotalDisplay">₹0</span>
+                </div>
+              </div>
+
+              <!-- ACTION BUTTONS -->
+              <div class="billing-actions-bar">
+                <button type="button" class="btn-primary" id="btnSaveBill">
+                  <span>💾 Save Bill</span>
+                </button>
+                <button type="button" class="btn-whatsapp" id="btnShareWhatsapp" title="Send Bill PDF directly to customer WhatsApp without downloading">
+                  <span>💬 Share on WhatsApp</span>
+                </button>
+                <button type="button" class="btn-secondary btn-action-pdf" id="btnDownloadPdf">
+                  <span>📄 Download A4 PDF</span>
+                </button>
+                <button type="button" class="btn-secondary btn-action-print" id="btnPrintBill">
+                  <span>🖨️ Print Invoice</span>
+                </button>
+                <button type="button" class="btn-secondary" id="btnResetBillForm" title="Clear and create a new bill">
+                  <span>🔄 Reset</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- RIGHT: LIVE A4 INVOICE PREVIEW -->
+            <div class="billing-preview-card">
+              <div class="preview-card-header">
+                <div class="preview-title">
+                  <span class="preview-dot"></span>
+                  <strong>Live A4 Bill Preview</strong>
+                </div>
+                <div class="preview-actions">
+                  <button type="button" class="btn-preview-mini btn-preview-whatsapp" id="btnPreviewWhatsapp" title="Share PDF on WhatsApp">💬 WhatsApp</button>
+                  <button type="button" class="btn-preview-mini" id="btnPreviewPrint" title="Print this bill">🖨️ Print</button>
+                  <button type="button" class="btn-preview-mini" id="btnPreviewPdf" title="Download PDF">📄 PDF</button>
+                </div>
+              </div>
+
+              <!-- SCROLLABLE CONTAINER FOR A4 SHEET -->
+              <div class="preview-sheet-scroll" id="previewSheetContainer">
+                
+                <!-- EXACT A4 INVOICE SHEET (USING APPROVED DESIGN TEMPLATE) -->
+                <div class="mourya-invoice-sheet" id="mouryaInvoiceA4">
+                  <img src="/assets/mourya_bill_template.jpg" class="inv-template-img" alt="Mourya Drycleaners Bill Template" / loading="lazy" decoding="async">
+                  
+                  <!-- OVERLAY DYNAMIC FIELDS -->
+                  <div class="inv-template-overlay">
+                    <div class="inv-over-text inv-cust-name" id="pvCustName">—</div>
+                    <div class="inv-over-text inv-cust-phone" id="pvCustPhone">—</div>
+                    <div class="inv-over-text inv-cust-address" id="pvCustAddress">—</div>
+
+                    <div class="inv-over-text inv-bill-no" id="pvBillNumber">MDC-2610-001</div>
+                    <div class="inv-over-text inv-bill-date" id="pvBillDate">31 / 10 / 2026</div>
+
+                    <!-- 8 ROWS CONTAINER -->
+                    <div class="inv-table-rows" id="pvItemsContainer">
+                      <!-- 8 rows populated by JS -->
+                    </div>
+
+                    <!-- TOTAL -->
+                    <div class="inv-over-text inv-total-amt" id="pvTotalAmount">0</div>
+                  </div>
+                </div>
+                <!-- END A4 INVOICE SHEET -->
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SUB-VIEW 2: BILL HISTORY -->
+        <div id="subViewBillHistory" class="sub-view-section hidden">
+          <div class="toolbar-card">
+            <div class="toolbar-row">
+              <div class="search-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="billHistorySearch" placeholder="Search by Bill No., Customer Name, Mobile..." />
+                <button type="button" id="btnClearBillSearch" class="btn-clear-input hidden">✕</button>
+              </div>
+
+              <div class="filter-group">
+                <label for="billHistoryDateFilter" class="filter-label">Filter Date:</label>
+                <input type="date" id="billHistoryDateFilter" class="date-input" />
+                <button type="button" id="btnClearBillDateFilter" class="btn-clear-date hidden" title="Clear Date">✕</button>
+              </div>
+
+              <button type="button" class="btn-primary" id="btnHistoryToCreateBill">
+                <span>➕ Create New Bill</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="content-section">
+            <div class="section-meta-header">
+              <span id="billsHistoryCountLabel">Loading bills...</span>
+            </div>
+
+            <div class="table-card">
+              <div class="table-responsive">
+                <table class="data-table" id="billsHistoryTable">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Bill No.</th>
+                      <th>Customer Details</th>
+                      <th>Address</th>
+                      <th>Items Count</th>
+                      <th>Total Amount</th>
+                      <th style="text-align: right;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="billsHistoryTableBody">
+                    <!-- Dynamic Rows Rendered by JS -->
+                  </tbody>
+                </table>
+              </div>
+
+              <div id="noBillsHistoryState" class="empty-state hidden">
+                <div class="empty-icon">🧾</div>
+                <h3>No bills found</h3>
+                <p>No billing records match your search query. Click "Create New Bill" to generate one.</p>
+                <button type="button" class="btn-secondary" id="btnResetBillHistoryFilters">Reset Filters</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- VIEW 2: EXPENSES TAB -->
+      <section id="expensesTab" class="view-panel hidden">
+        
+        <!-- Expenses KPI Overview -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon icon-blue">💰</div>
+            <div>
+              <div class="kpi-label">Total Expenses</div>
+              <div class="kpi-value" id="kpiTotalExpenseAmt">₹0</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon icon-emerald">📅</div>
+            <div>
+              <div class="kpi-label">This Month's Total</div>
+              <div class="kpi-value" id="kpiThisMonthExpense">₹0</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon icon-purple">🧾</div>
+            <div>
+              <div class="kpi-label">Total Entries</div>
+              <div class="kpi-value" id="kpiExpenseReceiptsCount">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expenses Toolbar -->
+        <div class="toolbar-card">
+          <div class="toolbar-row">
+            <!-- Search -->
+            <div class="search-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="expenseSearchInput" placeholder="Search by title, category, vendor, notes..." />
+              <button type="button" id="btnClearExpSearch" class="btn-clear-input hidden">✕</button>
+            </div>
+
+            <!-- Category Filter -->
+            <div class="filter-group">
+              <label for="expCategoryFilter" class="filter-label">Category:</label>
+              <select id="expCategoryFilter" class="select-input">
+                <option value="all">All Categories</option>
+                <option value="Raw Materials / Chemicals">Chemicals &amp; Detergents</option>
+                <option value="Shop Rent">Shop Rent</option>
+                <option value="Utilities & Electricity">Electricity &amp; Water</option>
+                <option value="Staff Salary">Staff / Labor Salary</option>
+                <option value="Machinery & Maintenance">Machinery &amp; Maintenance</option>
+                <option value="Packaging & Hangers">Packaging &amp; Hangers</option>
+                <option value="Logistics & Petrol">Delivery Scooter Petrol</option>
+                <option value="Tea & Snacks">Tea &amp; Snacks</option>
+                <option value="Miscellaneous">Miscellaneous</option>
+              </select>
+            </div>
+
+            <!-- Month / Date Ordering -->
+            <div class="filter-group">
+              <label for="expMonthFilter" class="filter-label">Month:</label>
+              <select id="expMonthFilter" class="select-input">
+                <option value="all">All Months</option>
+              </select>
+            </div>
+
+            <button type="button" class="btn-primary" id="btnOpenAddExpenseModal">
+              <span>➕ Add Expense</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Expenses Table Container -->
+        <div class="content-section">
+          <div class="section-meta-header">
+            <span id="expenseResultsCount">Loading expenses...</span>
+          </div>
+
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="data-table" id="expensesTable">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Expense Title &amp; Category</th>
+                    <th>Paid To / Vendor</th>
+                    <th>Payment Mode</th>
+                    <th>Amount</th>
+                    <th style="text-align: right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="expensesTableBody">
+                  <!-- Dynamic Rows Rendered by JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <div id="noExpensesState" class="empty-state hidden">
+              <div class="empty-icon">🧾</div>
+              <h3>No expense records found</h3>
+              <p>Click "Add Expense" to record a new business expense or bill photo.</p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ==================== 3. MODALS ==================== -->
+
+  <!-- ADD BOOKING MODAL -->
+  <div id="addBookingModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>➕ Add Manual Booking</h3>
+        <button type="button" class="modal-close-btn" id="btnCloseAddBooking">✕</button>
+      </div>
+      <form id="addBookingForm">
+        <div class="modal-body">
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="newCustName">Customer Name *</label>
+              <input type="text" id="newCustName" name="name" placeholder="e.g. Vikram Malhotra" required />
+            </div>
+            <div class="form-group">
+              <label for="newCustPhone">Phone Number *</label>
+              <input type="tel" id="newCustPhone" name="phone" placeholder="e.g. 9811122334" required />
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="newPickupDate">Pickup Date *</label>
+              <input type="date" id="newPickupDate" name="pickupDate" required />
+            </div>
+            <div class="form-group">
+              <label for="newTimeSlot">Time Slot</label>
+              <select id="newTimeSlot" name="time">
+                <option value="Morning (9AM-12PM)">Morning (9AM - 12PM)</option>
+                <option value="Afternoon (12PM-4PM)">Afternoon (12PM - 4PM)</option>
+                <option value="Evening (4PM-8PM)">Evening (4PM - 8PM)</option>
+                <option value="Flexible" selected>Flexible Time</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="newSector">Sector / Colony</label>
+              <input type="text" id="newSector" name="sector" placeholder="e.g. Sector 56 / DLF Phase 1" />
+            </div>
+            <div class="form-group">
+              <label for="newAddress">Full Doorstep Address</label>
+              <input type="text" id="newAddress" name="address" placeholder="Tower B, Flat 402, Green Valley" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="newServices">Services Requested</label>
+            <input type="text" id="newServices" name="services" placeholder="e.g. Dry Cleaning, Blanket Cleaning, Suits (comma separated)" />
+          </div>
+
+          <div class="form-group">
+            <label for="newNotes">Special Instructions / Notes</label>
+            <textarea id="newNotes" name="notes" rows="2" placeholder="e.g. Starch shirts lightly, handle silk saree with care"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btnCancelAddBooking">Cancel</button>
+          <button type="submit" class="btn-primary" id="btnSubmitAddBooking">Save Booking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD EXPENSE MODAL -->
+  <div id="addExpenseModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>💰 Record Business Expense</h3>
+        <button type="button" class="modal-close-btn" id="btnCloseAddExpense">✕</button>
+      </div>
+      <form id="addExpenseForm">
+        <div class="modal-body">
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="expCatInput">Category *</label>
+              <select id="expCatInput" required>
+                <option value="Raw Materials / Chemicals">Chemicals &amp; Detergents</option>
+                <option value="Shop Rent">Shop Rent</option>
+                <option value="Utilities & Electricity">Electricity &amp; Water Bill</option>
+                <option value="Staff Salary">Staff / Labor Salary</option>
+                <option value="Machinery & Maintenance">Machinery &amp; Maintenance</option>
+                <option value="Packaging & Hangers">Packaging &amp; Hangers</option>
+                <option value="Logistics & Petrol">Delivery Scooter Petrol</option>
+                <option value="Tea & Snacks">Shop Tea &amp; Snacks</option>
+                <option value="Miscellaneous" selected>Other Miscellaneous</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="expAmtInput">Amount (₹) *</label>
+              <input type="number" id="expAmtInput" placeholder="e.g. 2500" min="1" step="0.01" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="expTitleInput">Expense Description / Title *</label>
+            <input type="text" id="expTitleInput" placeholder="e.g. 50kg Surf & Stain Remover from wholesale" required />
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="expDateInput">Expense Date *</label>
+              <input type="date" id="expDateInput" required />
+            </div>
+            <div class="form-group">
+              <label for="expPaymentModeInput">Payment Mode</label>
+              <select id="expPaymentModeInput">
+                <option value="Cash">Cash</option>
+                <option value="UPI" selected>UPI (GPay / PhonePe / Paytm)</option>
+                <option value="Bank Transfer">Bank Transfer / IMPS</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="expVendorInput">Paid To / Vendor Name</label>
+              <input type="text" id="expVendorInput" placeholder="e.g. Ramesh Chemical Agency" />
+            </div>
+            <div class="form-group">
+              <label for="expNotesInput">Notes / Voucher #</label>
+              <input type="text" id="expNotesInput" placeholder="Bill number, invoice #..." />
+            </div>
+          </div>
+
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btnCancelAddExpense">Cancel</button>
+          <button type="submit" class="btn-primary" id="btnSubmitAddExpense">Record Expense</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- UPLOAD PAYMENT SCREENSHOT MODAL -->
+  <div id="uploadScreenshotModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-card modal-sm">
+      <div class="modal-head">
+        <h3>💳 Upload Payment Receipt</h3>
+        <button type="button" class="modal-close-btn" id="btnCloseScreenshotModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc" id="screenshotBookingDesc">Upload customer payment proof / UPI receipt screenshot</p>
+        <div class="upload-dropzone" id="screenshotDropzone">
+          <input type="file" id="screenshotFileInput" accept="image/*" class="file-hidden-input" />
+          <div class="dropzone-content" id="screenshotDropzoneEmpty">
+            <div class="dropzone-icon">📸</div>
+            <div class="dropzone-title">Select payment screenshot</div>
+            <div class="dropzone-sub">PNG, JPG, WebP</div>
+          </div>
+          <div class="dropzone-preview hidden" id="screenshotDropzonePreview">
+            <img id="screenshotPreviewImg" src="" alt="Screenshot Preview" / loading="lazy" decoding="async">
+            <div class="preview-info">
+              <span id="screenshotPreviewFilename">screenshot.png</span>
+              <button type="button" class="btn-remove-preview" id="btnRemoveScreenshotPreview">Remove</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="btnCancelScreenshotUpload">Cancel</button>
+        <button type="button" class="btn-primary" id="btnConfirmScreenshotUpload" disabled>Upload &amp; Attach</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMAGE VIEWER LIGHTBOX MODAL -->
+  <div id="imageLightboxModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="lightbox-card">
+      <div class="lightbox-head">
+        <h4 id="lightboxTitle">Receipt View</h4>
+        <div class="lightbox-actions">
+          <a href="#" target="_blank" id="lightboxOpenExternal" class="btn-lightbox-action" title="Open full resolution in new tab">↗ Full Size</a>
+          <button type="button" class="modal-close-btn" id="btnCloseLightbox">✕</button>
+        </div>
+      </div>
+      <div class="lightbox-body">
+        <img id="lightboxImg" src="" alt="Full view" / loading="lazy" decoding="async">
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastNotification" class="toast-popup hidden">
+    <span class="toast-icon" id="toastIcon">✓</span>
+    <span class="toast-message" id="toastMsg">Operation successful</span>
+  </div>
+
+  <!-- Firebase SDKs (compat mode - works everywhere, no build step) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="admin-dashboard.js?v=6.0"></script>
+</body>
+</html>
