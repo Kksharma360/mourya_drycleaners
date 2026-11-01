@@ -466,15 +466,11 @@
           showToast('Welcome back, Admin!');
         } catch (err) {
           console.warn('Login rejected:', err.code);
-          let errorMsg = 'Galat ID ya Password! Kripya sahi ID aur Password dalein.';
-          if (err.code === 'auth/user-not-found') {
-            errorMsg = 'Yeh email registered nahi hai. Kripya sahi email dalein.';
-          } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-            errorMsg = 'Galat Password! Kripya sahi Password dalein.';
-          } else if (err.code === 'auth/too-many-requests') {
-            errorMsg = 'Bahut zyada attempts. Thodi der baad try karein.';
-          } else if (err.code === 'auth/invalid-email') {
-            errorMsg = 'Email format galat hai. Kripya sahi email dalein.';
+          let errorMsg = 'Incorrect user or password';
+          if (err.code === 'auth/too-many-requests') {
+            errorMsg = 'Too many failed attempts. Please try again later.';
+          } else {
+            errorMsg = 'Incorrect user or password';
           }
           errorEl.textContent = errorMsg;
           errorEl.classList.remove('hidden');
