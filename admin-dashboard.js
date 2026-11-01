@@ -60,6 +60,7 @@
 
   // Upload Contexts
   let targetBookingForScreenshot = null;
+  let currentBookingIdForBill = null;
   let selectedExpenseFileBase64 = null;
   let selectedExpenseFileName = null;
   let selectedScreenshotBase64 = null;
@@ -101,125 +102,289 @@
   }
 
   // ==================== FIREBASE DATA LAYER (apiFetch replacement) ====================
-  // Uses Cloud Firestore with automatic month-wise indexing & zero Storage bucket dependency
+  // Structure:
+  // Bookings: bookings/{month}/{date}/{bookingId}
+  // Expenses: expenses/{month}/{date}/{expenseId}
+  // Bills:    bills/{month}/{date}/{bookingId}
   async function apiFetch(url, options = {}) {
     const method = (options.method || 'GET').toUpperCase();
     const body = options.body ? JSON.parse(options.body) : {};
 
     try {
-      // -------- BOOKINGS --------
+      // -------- BOOKINGS (GET) --------
       if (url === '/api/admin/bookings' && method === 'GET') {
-        const snap = await db.collection('bookings').get();
-        const bookings = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const monthDocs = await db.collection('bookings').get();
+        const subPromises = [];
+        monthDocs.forEach(mDoc => {
+          const dates = (mDoc.data() || {}).dates || [];
+          dates.forEach(d => {
+            subPromises.push(
+              db.collection('bookings').doc(mDoc.id).collection(d).get().then(snap => {
+                return snap.docs.map(doc => ({
+                  id: doc.id,
+                  bookingId: doc.data().bookingId || doc.id,
+                  ...doc.data(),
+                  _path: doc.ref.path,
+                  _month: mDoc.id,
+                  _date: d
+                }));
+              })
+            );
+          });
+        });
+        const results = await Promise.all(subPromises);
+        const bookings = results.flat();
         bookings.sort((a, b) => new Date(b.receivedAt || b.date || 0) - new Date(a.receivedAt || a.date || 0));
         return { status: 'success', bookings };
       }
 
+      // -------- BOOKINGS (POST) --------
       if (url === '/api/admin/bookings' && method === 'POST') {
         const b = body;
-        const docId = b.id || 'BOOK-' + Date.now();
-        const bDate = b.date || b.pickupDate || new Date().toISOString().split('T')[0];
-        let m = '';
+        const now = new Date();
+        const bDate = b.date || b.pickupDate || now.toISOString().split('T')[0];
+        let monthStr = now.toISOString().slice(0, 7);
+        let dateStr = now.toISOString().slice(0, 10);
         try {
           const d = new Date(bDate);
-          if (!isNaN(d.getTime())) m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          if (!isNaN(d.getTime())) {
+            monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          }
         } catch(_) {}
+        const docId = b.id || b.bookingId || 'BOOK-' + Date.now();
         const data = {
+          id: docId,
+          bookingId: docId,
           name: b.name || '', phone: b.phone || '', services: b.services || [],
           location: b.location || b.sector || '', address: b.address || '',
           pinnedLocation: b.pinnedLocation || '', gps: b.gps || '',
-          date: bDate, time: b.time || 'Flexible',
+          date: b.date || dateStr, pickupDate: dateStr, time: b.time || 'Flexible',
           notes: b.notes || '', pickupDone: Boolean(b.pickupDone),
           paymentDone: Boolean(b.paymentDone), deliveryDone: Boolean(b.deliveryDone),
           paymentScreenshot: b.paymentScreenshot || '',
-          receivedAt: b.receivedAt || new Date().toISOString(),
-          month: m || new Date().toISOString().slice(0, 7)
+          receivedAt: b.receivedAt || now.toISOString(),
+          createdAt: b.createdAt || now.toISOString(),
+          month: monthStr
         };
-        await db.collection('bookings').doc(docId).set(data, { merge: true });
-        return { status: 'success', booking: { id: docId, ...data } };
+        // Path: bookings -> month -> date -> bookingId
+        await db.collection('bookings').doc(monthStr).collection(dateStr).doc(docId).set(data, { merge: true });
+        await db.collection('bookings').doc(monthStr).set({
+          month: monthStr,
+          dates: firebase.firestore.FieldValue.arrayUnion(dateStr),
+          lastUpdated: now.toISOString()
+        }, { merge: true });
+        return { status: 'success', booking: { id: docId, ...data, _path: `bookings/${monthStr}/${dateStr}/${docId}`, _month: monthStr, _date: dateStr } };
       }
 
+      // -------- BOOKINGS STATUS (POST) --------
       if (url === '/api/admin/bookings/status' && method === 'POST') {
         const updates = {};
         if ('pickupDone' in body) updates.pickupDone = Boolean(body.pickupDone);
         if ('paymentDone' in body) updates.paymentDone = Boolean(body.paymentDone);
         if ('deliveryDone' in body) updates.deliveryDone = Boolean(body.deliveryDone);
         if ('paymentScreenshot' in body) updates.paymentScreenshot = body.paymentScreenshot;
-        await db.collection('bookings').doc(body.id).update(updates);
+
+        const target = allBookings.find(b => b.id === body.id || b.bookingId === body.id);
+        if (target && target._path) {
+          await db.doc(target._path).update(updates);
+        } else {
+          const monthDocs = await db.collection('bookings').get();
+          for (const mDoc of monthDocs.docs) {
+            const dates = (mDoc.data() || {}).dates || [];
+            for (const d of dates) {
+              const ref = db.collection('bookings').doc(mDoc.id).collection(d).doc(body.id);
+              const docSnap = await ref.get();
+              if (docSnap.exists) {
+                await ref.update(updates);
+                break;
+              }
+            }
+          }
+        }
         return { status: 'success' };
       }
 
-      // -------- EXPENSES --------
+      // -------- EXPENSES (GET) --------
       if (url === '/api/admin/expenses' && method === 'GET') {
-        const snap = await db.collection('expenses').get();
-        const expenses = snap.docs.map(doc => ({ id: doc.id, expenseId: doc.id, ...doc.data() }));
+        const monthDocs = await db.collection('expenses').get();
+        const subPromises = [];
+        monthDocs.forEach(mDoc => {
+          const dates = (mDoc.data() || {}).dates || [];
+          dates.forEach(d => {
+            subPromises.push(
+              db.collection('expenses').doc(mDoc.id).collection(d).get().then(snap => {
+                return snap.docs.map(doc => ({
+                  id: doc.id,
+                  expenseId: doc.id,
+                  ...doc.data(),
+                  _path: doc.ref.path,
+                  _month: mDoc.id,
+                  _date: d
+                }));
+              })
+            );
+          });
+        });
+        const results = await Promise.all(subPromises);
+        const expenses = results.flat();
         expenses.sort((a, b) => new Date(b.date || b.recordedAt || 0) - new Date(a.date || a.recordedAt || 0));
         return { status: 'success', expenses };
       }
 
+      // -------- EXPENSES (POST) --------
       if (url === '/api/admin/expenses' && method === 'POST') {
         const e = body;
-        const docId = e.expenseId || e.id || 'EXP-' + Date.now();
-        const expDate = e.date || new Date().toISOString().split('T')[0];
-        let m = '';
+        const now = new Date();
+        const expDate = e.date || now.toISOString().split('T')[0];
+        let monthStr = now.toISOString().slice(0, 7);
+        let dateStr = now.toISOString().slice(0, 10);
         try {
           const d = new Date(expDate);
-          if (!isNaN(d.getTime())) m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          if (!isNaN(d.getTime())) {
+            monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          }
         } catch(_) {}
+        const docId = e.expenseId || e.id || 'EXP-' + Date.now();
         const data = {
+          id: docId,
+          expenseId: docId,
           title: e.title || '', category: e.category || 'Miscellaneous',
-          amount: Number(e.amount) || 0, date: expDate,
+          amount: Number(e.amount) || 0, date: dateStr,
           paymentMode: e.paymentMode || 'Cash', vendor: e.vendor || '',
-          notes: e.notes || '', recordedAt: e.recordedAt || new Date().toISOString(),
-          month: m || new Date().toISOString().slice(0, 7)
+          notes: e.notes || '', recordedAt: e.recordedAt || now.toISOString(),
+          month: monthStr
         };
-        await db.collection('expenses').doc(docId).set(data, { merge: true });
-        return { status: 'success', expense: { id: docId, expenseId: docId, ...data } };
+        // Path: expenses -> month -> date -> expenseId
+        await db.collection('expenses').doc(monthStr).collection(dateStr).doc(docId).set(data, { merge: true });
+        await db.collection('expenses').doc(monthStr).set({
+          month: monthStr,
+          dates: firebase.firestore.FieldValue.arrayUnion(dateStr),
+          lastUpdated: now.toISOString()
+        }, { merge: true });
+        return { status: 'success', expense: { ...data, _path: `expenses/${monthStr}/${dateStr}/${docId}`, _month: monthStr, _date: dateStr } };
       }
 
+      // -------- EXPENSES (DELETE) --------
       if (url.startsWith('/api/admin/expenses/') && method === 'DELETE') {
         const expId = decodeURIComponent(url.split('/').pop());
-        await db.collection('expenses').doc(expId).delete();
+        const target = allExpenses.find(e => e.id === expId || e.expenseId === expId);
+        if (target && target._path) {
+          await db.doc(target._path).delete();
+        } else {
+          const monthDocs = await db.collection('expenses').get();
+          for (const mDoc of monthDocs.docs) {
+            const dates = (mDoc.data() || {}).dates || [];
+            for (const d of dates) {
+              const ref = db.collection('expenses').doc(mDoc.id).collection(d).doc(expId);
+              const snap = await ref.get();
+              if (snap.exists) {
+                await ref.delete();
+                break;
+              }
+            }
+          }
+        }
         return { status: 'success' };
       }
 
-      // -------- BILLS --------
+      // -------- BILLS (GET) --------
       if (url === '/api/admin/bills' && method === 'GET') {
-        const snap = await db.collection('bills').get();
-        const bills = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const monthDocs = await db.collection('bills').get();
+        const subPromises = [];
+        monthDocs.forEach(mDoc => {
+          const dates = (mDoc.data() || {}).dates || [];
+          dates.forEach(d => {
+            subPromises.push(
+              db.collection('bills').doc(mDoc.id).collection(d).get().then(snap => {
+                return snap.docs.map(doc => ({
+                  id: doc.id,
+                  bookingId: doc.data().bookingId || doc.id,
+                  billNumber: doc.data().billNumber || doc.id,
+                  invoiceNumber: doc.data().invoiceNumber || doc.data().billNumber || doc.id,
+                  ...doc.data(),
+                  _path: doc.ref.path,
+                  _month: mDoc.id,
+                  _date: d
+                }));
+              })
+            );
+          });
+        });
+        const results = await Promise.all(subPromises);
+        const bills = results.flat();
         bills.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0));
         return { status: 'success', bills };
       }
 
+      // -------- BILLS (POST) --------
+      // Path: bills -> month -> date -> bookingId
       if (url === '/api/admin/bills' && method === 'POST') {
         const b = body;
-        const docId = b.billNumber || b.invoiceNumber || 'MDC-' + Date.now();
-        const billDate = b.date || new Date().toISOString().split('T')[0];
-        let m = '';
+        const now = new Date();
+        const billDate = b.date || now.toISOString().split('T')[0];
+        let monthStr = now.toISOString().slice(0, 7);
+        let dateStr = now.toISOString().slice(0, 10);
         try {
           const d = new Date(billDate);
-          if (!isNaN(d.getTime())) m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          if (!isNaN(d.getTime())) {
+            monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          }
         } catch(_) {}
+
+        const docId = b.bookingId || currentBookingIdForBill || b.billNumber || 'BOOK-' + Date.now();
+        const billNumber = b.billNumber || b.invoiceNumber || generateBillNumber();
         const data = {
-          billNumber: docId, invoiceNumber: b.invoiceNumber || docId,
-          date: billDate, customerName: b.customerName || '',
-          phone: b.phone || '', address: b.address || '',
-          items: b.items || [], totalAmount: Number(b.totalAmount) || 0,
+          id: docId,
+          bookingId: docId,
+          billNumber: billNumber,
+          invoiceNumber: billNumber,
+          date: dateStr,
+          customerName: b.customerName || '',
+          phone: b.phone || '',
+          address: b.address || '',
+          items: b.items || [],
+          totalAmount: Number(b.totalAmount) || 0,
           grandTotal: Number(b.grandTotal || b.totalAmount) || 0,
-          createdAt: b.createdAt || new Date().toISOString(),
-          month: m || new Date().toISOString().slice(0, 7)
+          createdAt: b.createdAt || now.toISOString(),
+          month: monthStr
         };
-        await db.collection('bills').doc(docId).set(data, { merge: true });
-        return { status: 'success', bill: data };
+        // Path: bills -> month -> date -> bookingId
+        await db.collection('bills').doc(monthStr).collection(dateStr).doc(docId).set(data, { merge: true });
+        await db.collection('bills').doc(monthStr).set({
+          month: monthStr,
+          dates: firebase.firestore.FieldValue.arrayUnion(dateStr),
+          lastUpdated: now.toISOString()
+        }, { merge: true });
+        return { status: 'success', bill: { ...data, _path: `bills/${monthStr}/${dateStr}/${docId}`, _month: monthStr, _date: dateStr } };
       }
 
+      // -------- BILLS (DELETE) --------
       if (url.startsWith('/api/admin/bills/') && method === 'DELETE') {
         const billId = decodeURIComponent(url.split('/').pop());
-        await db.collection('bills').doc(billId).delete();
+        const target = allBills.find(b => b.id === billId || b.billNumber === billId || b.bookingId === billId);
+        if (target && target._path) {
+          await db.doc(target._path).delete();
+        } else {
+          const monthDocs = await db.collection('bills').get();
+          for (const mDoc of monthDocs.docs) {
+            const dates = (mDoc.data() || {}).dates || [];
+            for (const d of dates) {
+              const ref = db.collection('bills').doc(mDoc.id).collection(d).doc(billId);
+              const snap = await ref.get();
+              if (snap.exists) {
+                await ref.delete();
+                break;
+              }
+            }
+          }
+        }
         return { status: 'success' };
       }
 
-      // -------- SCREENSHOT UPLOAD (Stored as Base64 Data URI in Firestore - No Storage Bucket Required) --------
+      // -------- SCREENSHOT UPLOAD --------
       if (url === '/api/admin/upload-screenshot' && method === 'POST') {
         const dataUri = (body.contentBase64 || '').startsWith('data:')
           ? body.contentBase64
@@ -227,12 +392,7 @@
         return { status: 'success', url: dataUri, publicUrl: dataUri };
       }
 
-      // -------- BILL PDF UPLOAD (Local in-browser fallback) --------
-      if (url === '/api/admin/upload-bill-pdf' && method === 'POST') {
-        return { status: 'success', url: '', publicUrl: '' };
-      }
-
-      // -------- SESSION VERIFY (Firebase Auth state) --------
+      // -------- SESSION VERIFY --------
       if (url === '/api/admin/verify-session') {
         return { authenticated: Boolean(auth.currentUser), status: 'success' };
       }
@@ -470,32 +630,74 @@
         ]);
 
         if (Array.isArray(bkRes) && bkRes.length > 0) {
-          const batch = db.batch();
-          bkRes.forEach(b => {
-            const docRef = db.collection('bookings').doc(b.id || 'BOOK-' + Date.now());
-            let m = '';
+          const monthDatesMap = {};
+          for (const b of bkRes) {
+            const docId = b.id || 'BOOK-' + Date.now();
+            let monthStr = '2026-10';
+            let dateStr = '2026-10-30';
             try {
               const d = new Date(b.date || b.pickupDate || b.receivedAt);
-              if (!isNaN(d.getTime())) m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+              if (!isNaN(d.getTime())) {
+                monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              }
             } catch(_) {}
-            batch.set(docRef, { ...b, month: m || '2026-10' }, { merge: true });
-          });
-          await batch.commit();
+
+            if (!monthDatesMap[monthStr]) monthDatesMap[monthStr] = new Set();
+            monthDatesMap[monthStr].add(dateStr);
+
+            // Set doc at bookings/{month}/{date}/{bookingId}
+            await db.collection('bookings').doc(monthStr).collection(dateStr).doc(docId).set({
+              ...b,
+              id: docId,
+              bookingId: docId,
+              month: monthStr,
+              pickupDate: dateStr
+            }, { merge: true });
+          }
+
+          // Update month index documents
+          for (const m of Object.keys(monthDatesMap)) {
+            await db.collection('bookings').doc(m).set({
+              month: m,
+              dates: Array.from(monthDatesMap[m])
+            }, { merge: true });
+          }
         }
 
         if (Array.isArray(invRes) && invRes.length > 0) {
-          const batch = db.batch();
-          invRes.forEach(b => {
-            const docId = b.billNumber || b.invoiceNumber || 'MDC-' + Date.now();
-            const docRef = db.collection('bills').doc(docId);
-            let m = '';
+          const billMonthDatesMap = {};
+          for (const b of invRes) {
+            const docId = b.bookingId || b.billNumber || b.invoiceNumber || 'MDC-' + Date.now();
+            let monthStr = '2026-10';
+            let dateStr = '2026-10-29';
             try {
               const d = new Date(b.date || b.createdAt);
-              if (!isNaN(d.getTime())) m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+              if (!isNaN(d.getTime())) {
+                monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              }
             } catch(_) {}
-            batch.set(docRef, { ...b, month: m || '2026-10' }, { merge: true });
-          });
-          await batch.commit();
+
+            if (!billMonthDatesMap[monthStr]) billMonthDatesMap[monthStr] = new Set();
+            billMonthDatesMap[monthStr].add(dateStr);
+
+            // Set doc at bills/{month}/{date}/{bookingId}
+            await db.collection('bills').doc(monthStr).collection(dateStr).doc(docId).set({
+              ...b,
+              id: docId,
+              bookingId: docId,
+              month: monthStr,
+              date: dateStr
+            }, { merge: true });
+          }
+
+          for (const m of Object.keys(billMonthDatesMap)) {
+            await db.collection('bills').doc(m).set({
+              month: m,
+              dates: Array.from(billMonthDatesMap[m])
+            }, { merge: true });
+          }
         }
         return true;
       }
@@ -1937,6 +2139,7 @@
 
     try {
       const payload = {
+        bookingId: currentBookingIdForBill || billNumber,
         billNumber,
         date,
         customerName: name,
@@ -2082,6 +2285,7 @@
   }
 
   function resetBillForm() {
+    currentBookingIdForBill = null;
     const nameEl = document.getElementById('billCustName');
     const phoneEl = document.getElementById('billCustPhone');
     const addrEl = document.getElementById('billCustAddress');
@@ -2117,6 +2321,7 @@
   }
 
   function createBillFromBooking(booking) {
+    currentBookingIdForBill = booking.id || booking.bookingId || null;
     // 1. Switch to Bills tab
     switchTab('billsTab');
     switchBillSubTab('createBill');

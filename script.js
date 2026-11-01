@@ -746,31 +746,74 @@ function valid(b, isWhatsAppDirect = false){
   return true;
 }
 
+// Firebase initialization for customer bookings
+const mdcFirebaseConfig = {
+  apiKey: "AIzaSyAAKvT-Ta4WauKWD9pFSaWxjKKr9KdhlCE",
+  authDomain: "mourya-drycleaners-46036.firebaseapp.com",
+  projectId: "mourya-drycleaners-46036",
+  storageBucket: "mourya-drycleaners-46036.firebasestorage.app",
+  messagingSenderId: "489158981671",
+  appId: "1:489158981671:web:23269f5307891a43c33602"
+};
+
+function getMdcFirestore() {
+  if (typeof firebase !== 'undefined' && firebase.apps) {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(mdcFirebaseConfig);
+    }
+    return firebase.firestore();
+  }
+  return null;
+}
+
 async function saveBookingOrder(b) {
   const fullAddress = b.address + (b.pinnedLocation ? ` [Map Pin: ${b.pinnedLocation}]` : '');
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const monthStr = `${yyyy}-${mm}`;
+  const dateStr = `${yyyy}-${mm}-${dd}`;
+  const bookingId = 'BOOK-' + Date.now();
+
   const payload = {
-    name: b.name,
-    phone: b.phone,
-    services: b.services,
-    location: b.location,
+    id: bookingId,
+    bookingId: bookingId,
+    name: b.name || '',
+    phone: b.phone || '',
+    services: b.services || [],
+    location: b.location || '',
+    sector: b.location || '',
     address: fullAddress,
-    gps: b.gps,
-    date: b.date,
+    pinnedLocation: b.pinnedLocation || '',
+    gps: b.gps || '',
+    date: b.date || '',
+    pickupDate: dateStr,
     time: b.time || 'Flexible',
-    notes: b.notes || ''
+    notes: b.notes || '',
+    pickupDone: false,
+    paymentDone: false,
+    deliveryDone: false,
+    paymentScreenshot: '',
+    receivedAt: now.toISOString(),
+    createdAt: now.toISOString(),
+    month: monthStr
   };
 
   try {
-    const res = await fetch('/api/save-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (res.ok) {
-      console.log('[Supabase] Order saved successfully.');
+    const db = getMdcFirestore();
+    if (db) {
+      // Hierarchy: bookings -> month -> date -> bookingId
+      await db.collection('bookings').doc(monthStr).collection(dateStr).doc(bookingId).set(payload);
+      await db.collection('bookings').doc(monthStr).set({
+        month: monthStr,
+        dates: firebase.firestore.FieldValue.arrayUnion(dateStr),
+        lastUpdated: now.toISOString()
+      }, { merge: true });
+      console.log('[Firebase] Order saved in Firestore at bookings/' + monthStr + '/' + dateStr + '/' + bookingId);
     }
   } catch (err) {
-    console.warn('[Booking] Server order save note:', err.message);
+    console.warn('[Firebase] Order save notice:', err.message);
   }
 }
 
