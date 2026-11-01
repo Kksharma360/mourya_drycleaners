@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="admin-dashboard.css" />
-  <script src="/assets/html2pdf.bundle.min.js"></script>
+  <script src="assets/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -82,7 +82,7 @@
         </button>
 
         <div class="nav-section-title">QUICK LINKS</div>
-        <a href="/" target="_blank" class="nav-item nav-link-external">
+        <a href="index.html" target="_blank" class="nav-item nav-link-external">
           <span class="nav-icon">🌐</span>
           <span class="nav-label">Live Website</span>
           <span class="nav-icon-ext">↗</span>
@@ -410,7 +410,7 @@
                 
                 <!-- EXACT A4 INVOICE SHEET (USING APPROVED DESIGN TEMPLATE) -->
                 <div class="mourya-invoice-sheet" id="mouryaInvoiceA4">
-                  <img src="/assets/mourya_bill_template.jpg" class="inv-template-img" alt="Mourya Drycleaners Bill Template" / loading="lazy" decoding="async">
+                  <img src="assets/mourya_bill_template.jpg" onerror="if(!this.dataset.retry){this.dataset.retry=1;this.src='../assets/mourya_bill_template.jpg';}" class="inv-template-img" alt="Mourya Drycleaners Bill Template" />
                   
                   <!-- OVERLAY DYNAMIC FIELDS -->
                   <div class="inv-template-overlay">
