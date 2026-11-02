@@ -14,7 +14,7 @@
     { id: 'blanket_double', name: 'Double Bed Heavy Blanket / Razai', unit: 'pc', icon: '🛌', rateText: '₹280/pc', getRate: () => 280, defaultQty: 0, step: 1, min: 0, franchiseAvgRate: 480 },
     { id: 'curtain', name: 'Curtain Panel', unit: 'panel', icon: '🪟', rateText: '₹140/panel', getRate: () => 140, defaultQty: 0, step: 1, min: 0, franchiseAvgRate: 220 },
     { id: 'sofa', name: 'Sofa Deep Cleaning', unit: 'seat', icon: '🛋️', rateText: '₹230/seat', getRate: () => 230, defaultQty: 0, step: 1, min: 0, franchiseAvgRate: 350 },
-    { id: 'carpet', name: 'Carpet Dry Cleaning', unit: 'sq.ft', icon: '🧱', rateText: '₹20/sq.ft', getRate: () => 20, defaultQty: 0, step: 10, min: 0, franchiseAvgRate: 32 },
+    { id: 'carpet', name: 'Carpet Dry Cleaning', unit: 'sq.ft', icon: '🧱', rateText: '₹35/sq.ft', getRate: () => 35, defaultQty: 0, step: 10, min: 0, franchiseAvgRate: 50 },
     { id: 'shoes', name: 'Shoe / Sneaker Laundry', unit: 'pair', icon: '👟', rateText: '₹230/pair', getRate: () => 230, defaultQty: 0, step: 1, min: 0, franchiseAvgRate: 450 },
     { id: 'steam_iron', name: 'Steam Ironing Only', unit: 'pc', icon: '⚡', rateText: '₹30/pc', getRate: () => 30, defaultQty: 0, step: 1, min: 0, franchiseAvgRate: 50 }
   ];

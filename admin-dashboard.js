@@ -1717,7 +1717,7 @@
         { name: "Quilt / Rajai", rate: 230 },
         { name: "Curtain (per Panel)", rate: 140 },
         { name: "Curtain (Heavy per Panel)", rate: 170 },
-        { name: "Carpet (per Sq.ft.)", rate: 20 },
+        { name: "Carpet (per Sq.ft.)", rate: 35 },
         { name: "Sofa Set (per Seat)", rate: 230 },
         { name: "Shoes", rate: 230 }
       ]

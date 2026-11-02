@@ -1295,7 +1295,7 @@ def generate_page_html(loc):
           <div class="svc-card">
             <span class="svc-icon">🛋️</span>
             <h3>Sofa, Carpet &amp; Curtain Deep Sanitization</h3>
-            <p>On-site extraction cleaning for fabric &amp; leather sofas (₹230–₹450/seat), carpets (₹20–₹25/sq.ft.), and door-to-door curtain dry cleaning (₹140–₹170/panel) in {name}.</p>
+            <p>On-site extraction cleaning for fabric &amp; leather sofas (₹230–₹450/seat), carpets (₹35/sq.ft.), and door-to-door curtain dry cleaning (₹140–₹170/panel) in {name}.</p>
             <a href="../sofa-cleaning-gurugram.html">Book Upholstery Cleaning →</a>
           </div>
 
