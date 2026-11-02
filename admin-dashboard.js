@@ -314,8 +314,18 @@
         });
         const results = await Promise.all(subPromises);
         const bills = results.flat();
-        bills.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0));
-        return { status: 'success', bills };
+        // Deduplicate bills by bookingId / billNumber / id to prevent duplicate entries
+        const seenBillKeys = new Set();
+        const uniqueBills = [];
+        for (const bill of bills) {
+          const key = bill.bookingId || bill.billNumber || bill.invoiceNumber || bill.id;
+          if (key && !seenBillKeys.has(key)) {
+            seenBillKeys.add(key);
+            uniqueBills.push(bill);
+          }
+        }
+        uniqueBills.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0));
+        return { status: 'success', bills: uniqueBills };
       }
 
       // -------- BILLS (POST) --------
@@ -334,8 +344,8 @@
           }
         } catch(_) {}
 
-        const docId = b.bookingId || currentBookingIdForBill || b.billNumber || 'BOOK-' + Date.now();
-        const billNumber = b.billNumber || b.invoiceNumber || generateBillNumber();
+        const docId = b.bookingId || b.billNumber || b.invoiceNumber || b.id || currentBookingIdForBill || ('BOOK-' + Date.now());
+        const billNumber = docId;
         const data = {
           id: docId,
           bookingId: docId,
@@ -1613,10 +1623,7 @@
   }
 
   function generateBillNumber() {
-    const d = new Date();
-    const yymm = `${String(d.getFullYear()).slice(-2)}${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const rand = Math.floor(100 + Math.random() * 900);
-    return `MDC-${yymm}-${rand}`;
+    return 'BOOK-' + Date.now();
   }
 
   // Mourya Official Rate Card Catalog (From pricing.html)
@@ -2044,15 +2051,19 @@
     }
 
     try {
+      currentBookingIdForBill = billNumber;
       const payload = {
-        bookingId: currentBookingIdForBill || billNumber,
-        billNumber,
+        id: billNumber,
+        bookingId: billNumber,
+        billNumber: billNumber,
+        invoiceNumber: billNumber,
         date,
         customerName: name,
         phone,
         address,
         items: activeItems,
-        totalAmount
+        totalAmount,
+        grandTotal: totalAmount
       };
 
       const res = await apiFetch('/api/admin/bills', {
@@ -2062,8 +2073,13 @@
 
       if (res.status === 'success') {
         showToast(`Bill #${billNumber} saved successfully to database!`);
-        // Refresh local bills list
-        const idx = allBills.findIndex(b => (b.billNumber === billNumber || b.invoiceNumber === billNumber));
+        // Refresh local bills list - prevent duplicate rows
+        const idx = allBills.findIndex(b =>
+          (b.id && (b.id === res.bill.id || b.id === billNumber)) ||
+          (b.bookingId && (b.bookingId === res.bill.bookingId || b.bookingId === billNumber)) ||
+          (b.billNumber && (b.billNumber === billNumber || b.billNumber === res.bill.billNumber)) ||
+          (b.invoiceNumber && (b.invoiceNumber === billNumber || b.invoiceNumber === res.bill.invoiceNumber))
+        );
         if (idx !== -1) {
           allBills[idx] = res.bill;
         } else {
@@ -2096,7 +2112,7 @@
       if (!saved) return;
     }
 
-    const billNumber = document.getElementById('billNumberInput')?.value.trim() || 'MDC-Bill';
+    const billNumber = document.getElementById('billNumberInput')?.value.trim() || currentBookingIdForBill || 'MDC-Bill';
     const element = document.getElementById('mouryaInvoiceA4');
     if (!element) return;
 
@@ -2107,12 +2123,35 @@
       return;
     }
 
+    // Reset scroll of preview container to prevent html2canvas viewport cropping
+    const scrollContainer = document.getElementById('previewSheetContainer');
+    if (scrollContainer) scrollContainer.scrollTop = 0;
+
+    // Ensure template background image is loaded
+    const templateImg = element.querySelector('.inv-template-img');
+    if (templateImg && !templateImg.complete) {
+      await new Promise(resolve => {
+        templateImg.onload = resolve;
+        templateImg.onerror = resolve;
+        setTimeout(resolve, 1500);
+      });
+    }
+
+    // 7mm margins horizontally ensures 100% of 1024px height fits completely on 1 single A4 page without clipping the bottom!
     const opt = {
-      margin: 0,
+      margin: [0, 7, 0, 7], // top, right, bottom, left in mm
       filename: `Mourya_Bill_${billNumber}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'px', format: [682, 1024], orientation: 'portrait' }
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        scrollY: 0,
+        scrollX: 0
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
     html2pdf().set(opt).from(element).save().then(() => {
@@ -2205,10 +2244,12 @@
     if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
 
     initBillEditorRows();
+    updateLiveInvoicePreview();
     showToast('Billing form reset.');
   }
 
   function loadBillIntoEditor(bill) {
+    currentBookingIdForBill = bill.bookingId || bill.billNumber || bill.invoiceNumber || bill.id || null;
     const nameEl = document.getElementById('billCustName');
     const phoneEl = document.getElementById('billCustPhone');
     const addrEl = document.getElementById('billCustAddress');
@@ -2218,21 +2259,23 @@
     if (nameEl) nameEl.value = bill.customerName || '';
     if (phoneEl) phoneEl.value = bill.phone || '';
     if (addrEl) addrEl.value = bill.address || '';
-    if (numEl) numEl.value = bill.billNumber || bill.invoiceNumber || generateBillNumber();
+    if (numEl) numEl.value = currentBookingIdForBill || generateBillNumber();
     if (dateEl) dateEl.value = bill.date || new Date().toISOString().split('T')[0];
 
     initBillEditorRows(bill.items || []);
     switchBillSubTab('createBill');
-    showToast(`Loaded Bill #${bill.billNumber || bill.invoiceNumber}`);
+    updateLiveInvoicePreview();
+    showToast(`Loaded Bill #${numEl.value}`);
   }
 
   function createBillFromBooking(booking) {
-    currentBookingIdForBill = booking.id || booking.bookingId || null;
+    const bookingId = booking.id || booking.bookingId || ('BOOK-' + Date.now());
+    currentBookingIdForBill = bookingId;
     // 1. Switch to Bills tab
     switchTab('billsTab');
     switchBillSubTab('createBill');
 
-    // 2. Prefill fields
+    // 2. Prefill fields with exact Booking ID as Bill Number
     const nameEl = document.getElementById('billCustName');
     const phoneEl = document.getElementById('billCustPhone');
     const addrEl = document.getElementById('billCustAddress');
@@ -2245,7 +2288,8 @@
     const addressParts = [booking.address, booking.location || booking.sector].filter(Boolean);
     if (addrEl) addrEl.value = addressParts.join(', ');
 
-    if (numEl) numEl.value = generateBillNumber();
+    // Use exact booking ID as bill number
+    if (numEl) numEl.value = bookingId;
     if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
 
     // 3. Pre-seed services in first row
@@ -2258,6 +2302,8 @@
 
     const initialItems = srvName ? [{ service: srvName, qty: 1, rate: 0, amount: 0 }] : [];
     initBillEditorRows(initialItems);
+    updateLiveInvoicePreview();
+    showToast(`Billing opened for Booking #${bookingId}`);
 
     showToast(`Transferred details for ${booking.name || 'customer'} to Bill form.`);
     window.scrollTo({ top: 0, behavior: 'smooth' });

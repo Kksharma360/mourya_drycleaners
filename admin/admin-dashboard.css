@@ -2263,11 +2263,12 @@ input:checked + .slider:before {
 .inv-bill-no {
   top: 345px;
   left: 490px;
-  width: 155px;
-  font-size: 14px;
+  width: 175px;
+  font-size: 12px;
   line-height: 16px;
   font-weight: 800;
   color: #0b3d78;
+  white-space: nowrap;
 }
 
 .inv-bill-date {
