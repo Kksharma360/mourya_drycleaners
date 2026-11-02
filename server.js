@@ -399,7 +399,7 @@ const server = http.createServer(async (req, res) => {
     req.on('end', async () => {
       try {
         const data = JSON.parse(body);
-        if (!data.id) data.id = 'BOOK-' + Date.now();
+        if (!data.id) data.id = 'BOOK-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000);
         if (!data.receivedAt) data.receivedAt = new Date().toISOString();
         data.pickupDone = false;
         data.paymentDone = false;
@@ -433,7 +433,7 @@ const server = http.createServer(async (req, res) => {
     req.on('end', async () => {
       try {
         const data = JSON.parse(body);
-        if (!data.id) data.id = 'BOOK-' + Date.now();
+        if (!data.id) data.id = 'BOOK-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000);
         if (!data.receivedAt) data.receivedAt = new Date().toISOString();
         if (typeof data.pickupDone === 'undefined') data.pickupDone = false;
         if (typeof data.paymentDone === 'undefined') data.paymentDone = false;

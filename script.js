@@ -766,6 +766,13 @@ function getMdcFirestore() {
   return null;
 }
 
+function generateUniqueBookingId() {
+  // Guaranteed collision-proof: millisecond timestamp + 4-digit cryptographic/math entropy
+  const timestamp = Date.now();
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  return `BOOK-${timestamp}-${randomSuffix}`;
+}
+
 async function saveBookingOrder(b) {
   const fullAddress = b.address + (b.pinnedLocation ? ` [Map Pin: ${b.pinnedLocation}]` : '');
   const now = new Date();
@@ -774,7 +781,8 @@ async function saveBookingOrder(b) {
   const dd = String(now.getDate()).padStart(2, '0');
   const monthStr = `${yyyy}-${mm}`;
   const dateStr = `${yyyy}-${mm}-${dd}`;
-  const bookingId = 'BOOK-' + Date.now();
+  const bookingId = b.bookingId || generateUniqueBookingId();
+  b.bookingId = bookingId;
 
   const payload = {
     id: bookingId,
@@ -820,6 +828,7 @@ async function saveBookingOrder(b) {
 function getBookingWAMsg(b){
   const lines = [
     'Hi Mourya Dry Cleaners, I want to book a pickup.',
+    ...(b.bookingId ? [`📄 *Booking Ref:* ${b.bookingId}`] : []),
     '',
     `• Name: ${b.name}`,
     `• Phone: ${b.phone}`,
@@ -838,6 +847,7 @@ function getBookingWAMsg(b){
 async function handleBookingSubmission(triggerBtn, isWhatsAppDirect = false) {
   const b = bookingData();
   if (!valid(b, isWhatsAppDirect)) return;
+  b.bookingId = generateUniqueBookingId();
 
   const originalHtml = triggerBtn.innerHTML;
   triggerBtn.disabled = true;

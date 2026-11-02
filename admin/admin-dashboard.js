@@ -196,7 +196,7 @@
             dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
           }
         } catch(_) {}
-        const docId = b.id || b.bookingId || 'BOOK-' + Date.now();
+        const docId = b.id || b.bookingId || generateUniqueBookingId(allBookings);
         const data = {
           id: docId,
           bookingId: docId,
@@ -388,7 +388,7 @@
           }
         } catch(_) {}
 
-        const docId = b.bookingId || b.billNumber || b.invoiceNumber || b.id || currentBookingIdForBill || ('BOOK-' + Date.now());
+        const docId = b.bookingId || b.billNumber || b.invoiceNumber || b.id || currentBookingIdForBill || generateUniqueBookingId(allBills);
         const billNumber = docId;
         const data = {
           id: docId,
@@ -1201,7 +1201,10 @@
         const servicesInput = (formData.get('services') || '').trim();
         const services = servicesInput ? servicesInput.split(',').map(s => s.trim()).filter(Boolean) : ['Dry Cleaning'];
 
+        const newBookingId = generateUniqueBookingId(allBookings);
         const bookingPayload = {
+          id: newBookingId,
+          bookingId: newBookingId,
           name: formData.get('name').trim(),
           phone: formData.get('phone').trim(),
           pickupDate: formData.get('pickupDate'),
@@ -1666,8 +1669,20 @@
     }
   }
 
+  function generateUniqueBookingId(existingList = []) {
+    let id;
+    let attempts = 0;
+    do {
+      const timestamp = Date.now();
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      id = `BOOK-${timestamp}-${randomSuffix}`;
+      attempts++;
+    } while (Array.isArray(existingList) && existingList.some(b => (b && (b.id === id || b.bookingId === id || b.billNumber === id))) && attempts < 10);
+    return id;
+  }
+
   function generateBillNumber() {
-    return 'BOOK-' + Date.now();
+    return generateUniqueBookingId(allBills);
   }
 
   // Mourya Official Rate Card Catalog (From pricing.html)
@@ -2313,7 +2328,7 @@
   }
 
   function createBillFromBooking(booking) {
-    const bookingId = booking.id || booking.bookingId || ('BOOK-' + Date.now());
+    const bookingId = booking.id || booking.bookingId || generateUniqueBookingId(allBookings);
     currentBookingIdForBill = bookingId;
     // 1. Switch to Bills tab
     switchTab('billsTab');
