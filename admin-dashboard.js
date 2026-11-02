@@ -113,29 +113,73 @@
     try {
       // -------- BOOKINGS (GET) --------
       if (url === '/api/admin/bookings' && method === 'GET') {
-        const monthDocs = await db.collection('bookings').get();
-        const subPromises = [];
-        monthDocs.forEach(mDoc => {
-          const dates = (mDoc.data() || {}).dates || [];
-          dates.forEach(d => {
-            subPromises.push(
-              db.collection('bookings').doc(mDoc.id).collection(d).get().then(snap => {
-                return snap.docs.map(doc => ({
-                  id: doc.id,
-                  bookingId: doc.data().bookingId || doc.id,
-                  ...doc.data(),
-                  _path: doc.ref.path,
-                  _month: mDoc.id,
-                  _date: d
-                }));
-              })
-            );
+        const bookings = [];
+        try {
+          const monthDocs = await db.collection('bookings').get();
+          const subPromises = [];
+          monthDocs.forEach(mDoc => {
+            const mData = mDoc.data() || {};
+            // Direct flat booking document support
+            if (mData.name || mData.phone || mData.bookingId) {
+              bookings.push({
+                id: mDoc.id,
+                bookingId: mData.bookingId || mDoc.id,
+                ...mData,
+                _path: mDoc.ref.path
+              });
+            }
+            // Subcollection hierarchical dates support (bookings/{month}/{date}/{id})
+            const dates = mData.dates || [];
+            dates.forEach(d => {
+              subPromises.push(
+                db.collection('bookings').doc(mDoc.id).collection(d).get().then(snap => {
+                  return snap.docs.map(doc => ({
+                    id: doc.id,
+                    bookingId: doc.data().bookingId || doc.id,
+                    ...doc.data(),
+                    _path: doc.ref.path,
+                    _month: mDoc.id,
+                    _date: d
+                  }));
+                }).catch(err => {
+                  console.warn('Subcollection read note:', err);
+                  return [];
+                })
+              );
+            });
           });
-        });
-        const results = await Promise.all(subPromises);
-        const bookings = results.flat();
-        bookings.sort((a, b) => new Date(b.receivedAt || b.date || 0) - new Date(a.receivedAt || a.date || 0));
-        return { status: 'success', bookings };
+          const results = await Promise.all(subPromises);
+          bookings.push(...results.flat());
+        } catch (fbErr) {
+          console.warn('[Firebase Bookings Fetch Warning]', fbErr);
+        }
+
+        // Resilient Fallback to local data/bookings.json if network or firestore returned 0
+        if (bookings.length === 0) {
+          try {
+            const localRes = await fetch('data/bookings.json').catch(() => fetch('../data/bookings.json'));
+            if (localRes && localRes.ok) {
+              const localBookings = await localRes.json();
+              if (Array.isArray(localBookings) && localBookings.length > 0) {
+                bookings.push(...localBookings);
+              }
+            }
+          } catch (_) {}
+        }
+
+        // Deduplicate bookings by bookingId / id
+        const seenIds = new Set();
+        const uniqueBookings = [];
+        for (const b of bookings) {
+          const key = b.bookingId || b.id;
+          if (key && !seenIds.has(key)) {
+            seenIds.add(key);
+            uniqueBookings.push(b);
+          }
+        }
+
+        uniqueBookings.sort((a, b) => new Date(b.receivedAt || b.date || b.createdAt || 0) - new Date(a.receivedAt || a.date || a.createdAt || 0));
+        return { status: 'success', bookings: uniqueBookings };
       }
 
       // -------- BOOKINGS (POST) --------
@@ -628,17 +672,17 @@
   async function loadInitialData() {
     try {
       const [bookingsRes, expensesRes, billsRes] = await Promise.all([
-        apiFetch('/api/admin/bookings'),
-        apiFetch('/api/admin/expenses'),
-        apiFetch('/api/admin/bills')
+        apiFetch('/api/admin/bookings').catch(e => ({ status: 'error', error: e.message, bookings: [] })),
+        apiFetch('/api/admin/expenses').catch(e => ({ status: 'error', error: e.message, expenses: [] })),
+        apiFetch('/api/admin/bills').catch(e => ({ status: 'error', error: e.message, bills: [] }))
       ]);
 
-      if (bookingsRes.status === 'success') {
+      if (bookingsRes && bookingsRes.status === 'success') {
         allBookings = bookingsRes.bookings || [];
         renderBookings();
       }
 
-      if (expensesRes.status === 'success') {
+      if (expensesRes && expensesRes.status === 'success') {
         allExpenses = expensesRes.expenses || [];
         populateExpenseMonthsDropdown();
         renderExpenses();
